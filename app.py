@@ -73,9 +73,11 @@ ui.tags.style(
         }
         .sidebar {
             background-color: lightgray !important;
+     
+            
         }
         .custom-nav-wrapper {
-            background-color: orange;  /* light blue-gray */
+            background-color: #001861;  
             padding: 10px;
             border-radius: 8px;
             margin: 0px;
@@ -120,7 +122,7 @@ ui.page_opts(title="Toronto Collision", fillable=True)
 
 
 
-with ui.sidebar(open="desktop"):
+with ui.sidebar():
 
     ui.input_checkbox_group(
         "time",
@@ -128,13 +130,14 @@ with ui.sidebar(open="desktop"):
         ["Lunch", "Dinner"],
         selected=["Lunch", "Dinner"],
         inline=True,
+        width="100px",
     )
 
 with ui.div(class_="custom-nav-wrapper"):
         
     with ui.navset_pill(id="tab"): 
         
-        with ui.nav_panel("General Information"):
+        with ui.nav_panel("Overview"):
             with ui.layout_columns(col_widths={"sm": (4, 4, 4)}):
 
                 with ui.value_box(
@@ -149,7 +152,7 @@ with ui.div(class_="custom-nav-wrapper"):
 
                 with ui.value_box(
                     showcase=icon_svg("calendar-days", width="40px"),
-                    theme="bg-gradient-orange-red",
+                    theme="bg-gradient-green-red",
                 ):
                     ui.div("End Date", class_="vb-title")
 
@@ -159,7 +162,7 @@ with ui.div(class_="custom-nav-wrapper"):
 
                 with ui.value_box(
                     showcase=icon_svg("car-burst", width="40px"),
-                    theme="bg-gradient-yellow-purple",
+                    theme="bg-gradient-orange-red",
                 ):
                     ui.div("Number of Collisions", class_="vb-title")
 
@@ -169,39 +172,116 @@ with ui.div(class_="custom-nav-wrapper"):
                         
             # Step 5: Render map in Shiny Express
        
+            with ui.layout_columns(col_widths={"sm": (6, 6)}):
+                    
+                with ui.card(full_screen=True, height="400px"):
 
-            with ui.card(full_screen=True, height="500px"):
+                    @render.ui
+                    def plot_network():
+                        # Step 2: Create a Folium Map centered around Toronto
+                        m = folium.Map(location=[43.73, -79.3], zoom_start=10, tiles="cartodbpositron")
 
-                @render.ui
-                def plot_network():
-                    # Step 2: Create a Folium Map centered around Toronto
-                    m = folium.Map(location=[43.6, -79.4], zoom_start=10, tiles="cartodbpositron")
+                        # Step 3: Create a color scale
+                        max_val = hex_gdf['collision_count'].max()
+                        colormap = cm.linear.YlOrRd_09.scale(0, max_val)
+                        colormap.caption = 'Number of Collisions'
+                        colormap.add_to(m)
 
-                    # Step 3: Create a color scale
-                    max_val = hex_gdf['collision_count'].max()
-                    colormap = cm.linear.YlOrRd_09.scale(0, max_val)
-                    colormap.caption = 'Number of Collisions'
-                    colormap.add_to(m)
-
-                    # Step 4: Add each hexagon to the map
-                    for _, row in hex_gdf.iterrows():
-                        # Color based on collision count
-                        color = colormap(row['collision_count'])
-                        
-                        # Add to map
-                        folium.GeoJson(
-                            row['geometry'],
-                            style_function=lambda feature, color=color: {
-                                'fillColor': color,
-                                'color': 'black',
-                                'weight': 0.5,
-                                'fillOpacity': 0.6
-                            },
-                            tooltip=folium.Tooltip(f"Collisions: {row['collision_count']}"),
-                        ).add_to(m)
+                        # Step 4: Add each hexagon to the map
+                        for _, row in hex_gdf.iterrows():
+                            # Color based on collision count
+                            color = colormap(row['collision_count'])
+                            
+                            # Add to map
+                            folium.GeoJson(
+                                row['geometry'],
+                                style_function=lambda feature, color=color: {
+                                    'fillColor': color,
+                                    'color': 'black',
+                                    'weight': 0.5,
+                                    'fillOpacity': 0.6
+                                },
+                                tooltip=folium.Tooltip(f"Collisions: {row['collision_count']}"),
+                            ).add_to(m)
 
 
-                    return m
-        with ui.nav_panel("B"):
+                        return m
+                    
+                with ui.card(height="400px"):
+                    ui.card_header("Total Collisions by Year")
+
+                    @render.plot
+                    def collision_all_plot():
+             
+
+                        collisions_per_year = database.groupby('OCC_YEAR').size().sort_index()
+
+                        collisions_per_year.plot(kind='bar', color='orange')
+
+                        plt.xlabel('Year', fontsize=8)
+                        plt.ylabel('Collision Count', fontsize=8)
+                        plt.xticks(rotation=0, fontsize=6)
+                        plt.yticks(fontsize=8)
+
+                        plt.tight_layout()
+           
+                       
+                with ui.card(height="400px"):
+                    ui.card_header("Total Fatals by Year")
+
+                    @render.plot
+                    def fatal_all_plot():
+                        # Filter rows where fatal collisions are greater than 0
+                        filtered_df = database[database['FATALITIES'] > 0]
+
+                        # Group by year and count the number of rows per year
+                        fatalities_per_year = filtered_df.groupby('OCC_YEAR')['FATALITIES'].sum().sort_index()
+
+                        # Plotting
+                        fatalities_per_year.plot(kind='bar', color='crimson')
+
+                        # Customize fonts
+                
+                        plt.xlabel('Year', fontsize=8)
+                        plt.ylabel('Fatal Count', fontsize=8)
+                        plt.xticks(rotation=0, fontsize=6)
+                        plt.yticks(fontsize=8)
+
+                        plt.tight_layout()
+
+
+
+                with ui.card(height="400px"):
+                    ui.card_header("Percentage of Runaway by Year")
+
+                    @render.plot
+                    def runway_all_plot():
+    
+                        # Total collisions per year
+                        total_per_year = database.groupby('OCC_YEAR').size()
+
+                        # Runaway collisions per year
+                        runaway_per_year = database[database['FTR_COLLISIONS'] > 0].groupby('OCC_YEAR').size()
+
+                        # Calculate percentage (ensure same index)
+                        percentage_runaway_per_year = (runaway_per_year / total_per_year) * 100
+
+                        # Plot as a line chart
+                        plt.figure(figsize=(8, 4))
+                        plt.plot(percentage_runaway_per_year.index, percentage_runaway_per_year.values, marker='o', color='purple', linestyle='-')
+
+                     
+                        plt.xlabel('Year', fontsize=8)
+                        plt.ylabel('Percentage (%)', fontsize=8)
+                        plt.xticks(rotation=45, fontsize=6)
+                        plt.yticks(fontsize=8)
+
+                        plt.grid(True, linestyle='--', linewidth=0.5)
+                        plt.tight_layout()
+
+        with ui.nav_panel("Division-based Analysis"):
             "Panel B content"
+
+        with ui.nav_panel("Neighborhood-based Analysis"):
+            "Panel C content"
 
