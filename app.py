@@ -80,70 +80,83 @@ ui.tags.style(
             font-weight: bold !important; /* Makes the text bold */
             background-color: purple !important;
         }
+        .sidebar {
+            background-color: white !important;
+        }
+
     """
 )
 
 
 
-ui.page_opts(window_title="Toronto Collision", fillable=True)
+ui.page_opts(title="Toronto Collision", fillable=True)
 
 
 
 
 
-with ui.div(class_="header-container"):
 
-    with ui.div(class_="title-container"):
-        ui.h3("Toronto Collision Dashboard")
 
+
+
+with ui.sidebar(open="desktop"):
+
+    ui.input_checkbox_group(
+        "time",
+        "Food service",
+        ["Lunch", "Dinner"],
+        selected=["Lunch", "Dinner"],
+        inline=True,
+    )
+    ui.input_action_button("reset", "Reset filter")
+
+    
+############################################
 with ui.card():
-        
-    ############################################
-    with ui.card():
-        
-        ui.card_header("General Information", class_="info-gen-css")
-        with ui.layout_columns(col_widths={"sm": (4,4,4)}):
+    
+    ui.card_header("General Information", class_="info-gen-css")
+    with ui.layout_columns(col_widths={"sm": (4,4,4)}):
 
-            with ui.value_box(
-                showcase=faicons.icon_svg("calendar-days", width="50px"),
-                theme="bg-gradient-green-red",
-            ):
-                "Start Date"
+        with ui.value_box(
+            showcase=faicons.icon_svg("calendar-days", width="50px"),
+            theme="bg-gradient-green-red",
+        ):
+            "Start Date"
 
-                @render.ui  
-                def datestartfun():  
-                    return "January, 2014"  
-                
+            @render.ui  
+            def datestartfun():  
+                return "January, 2014"  
+            
 
-            with ui.value_box(
-                showcase=faicons.icon_svg("calendar-days", width="50px"),
-                theme="bg-gradient-orange-red",
-            ):
-                "End Date"
+        with ui.value_box(
+            showcase=faicons.icon_svg("calendar-days", width="50px"),
+            theme="bg-gradient-orange-red",
+        ):
+            "End Date"
 
-                @render.ui  
-                def dateendfun():  
-                    return "December, 2024"  
-                
+            @render.ui  
+            def dateendfun():  
+                return "December, 2024"  
+            
 
 
-            with ui.value_box(
-                showcase=faicons.icon_svg("car-burst", width="50px"),
-                theme="bg-gradient-yellow-purple",
-            ):
-                "Number of Collisions"
+        with ui.value_box(
+            showcase=faicons.icon_svg("car-burst", width="50px"),
+            theme="bg-gradient-yellow-purple",
+        ):
+            "Number of Collisions"
 
-                @render.ui
-                def routefun():
-                    return len(database)
+            @render.ui
+            def routefun():
+                return len(database)
 
 
-    with ui.card(full_screen=True, height="500px"):
+with ui.card(full_screen=True, height="500px"):
 
-        @render.ui
-        def plot_network():
-            m = folium.Map(location=[43.6, -79.4], zoom_start=10)
-            HeatMap(data=database[['LAT_WGS84', 'LONG_WGS84']].values, radius=6).add_to(m)
-            return m
+    @render.ui
+    def plot_network():
+        m = folium.Map(location=[43.6, -79.4], zoom_start=10)
+        HeatMap(data=database[['LAT_WGS84', 'LONG_WGS84']].values, radius=6).add_to(m)
+        return m
 
 
