@@ -2,6 +2,10 @@ import pandas as pd
 import geopandas as gpd
 from shapely.geometry import Point
 import zipfile
+import folium
+import geopandas as gpd
+import branca.colormap as cm
+
 
 # Step 1: Load your CSV from ZIP
 with zipfile.ZipFile("Traffic_Collisions_All.zip") as zipf:
@@ -37,3 +41,8 @@ columns_to_convert = ['INJURY_COLLISIONS', 'FTR_COLLISIONS', 'PD_COLLISIONS']
 df[columns_to_convert] = df[columns_to_convert].applymap(lambda x: 1 if x == 'YES' else 0)
 
 database = df.copy()
+
+
+
+# Step 1: Load the hex grid with collisions
+hex_gdf = gpd.read_file("hex_grid_with_collisions.geojson")

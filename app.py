@@ -8,13 +8,14 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+import branca.colormap as cm
 import folium
 from folium.plugins import HeatMap
+from folium.plugins import MarkerCluster
 
 from pathlib import Path
 
-from data import database
+from data import database, hex_gdf
 
 import altair as alt
 import calendar
@@ -24,35 +25,25 @@ import plotly.express as px
 from shiny import reactive
 from shiny.express import render,input, ui
 from shinywidgets import render_plotly, render_altair, render_widget
-
+import geopandas as gpd
+import pandas as pd
+import folium
+from shapely.geometry import Point
+import h3
+import h3
+from shapely.geometry import Polygon
+from shiny.express import ui, render
 
 ui.tags.style(
     """
-        .header-container {
-        
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: black;
-            height: 90px;
-            padding: 0px !important;
-            margin: 0px !important;
-        }
 
-
-        .title-container h3 {
-            color: white;
-            padding: 0px !important;
-            margin: 0px !important;
-        
-        }
 
 
 
 
         body {
 
-            background-color: #5e41aa;
+            background-color: white;
             padding: 0px !important;
             Margin: 0px !important;
         
@@ -81,7 +72,41 @@ ui.tags.style(
             background-color: purple !important;
         }
         .sidebar {
-            background-color: white !important;
+            background-color: lightgray !important;
+        }
+        .custom-nav-wrapper {
+            background-color: orange;  /* light blue-gray */
+            padding: 10px;
+            border-radius: 8px;
+            margin: 0px;
+        }
+        .nav-pills .nav-link {
+            background-color: #f8f9fa;   /* Light gray background */
+            color: #000;                 /* Black text */
+            border: 1px solid #ccc;      /* Light border */
+            margin-bottom: 10px;
+            margin-right: 10px !important;
+            font-weight: bold;
+        }
+
+        .nav-pills .nav-link.active {
+            background-color: #007bff;   /* Bootstrap primary blue for active */
+            color: white;
+        }
+
+        .nav-pills .nav-link:hover {
+            background-color: #e2e6ea;   /* Slightly darker on hover */
+            color: #000;
+        }
+        .vb-title {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .vb-value {
+            font-size: 16px;
+            font-weight: 600;
         }
 
     """
@@ -90,10 +115,6 @@ ui.tags.style(
 
 
 ui.page_opts(title="Toronto Collision", fillable=True)
-
-
-
-
 
 
 
@@ -108,55 +129,79 @@ with ui.sidebar(open="desktop"):
         selected=["Lunch", "Dinner"],
         inline=True,
     )
-    ui.input_action_button("reset", "Reset filter")
 
-    
-############################################
-with ui.card():
-    
-    ui.card_header("General Information", class_="info-gen-css")
-    with ui.layout_columns(col_widths={"sm": (4,4,4)}):
+with ui.div(class_="custom-nav-wrapper"):
+        
+    with ui.navset_pill(id="tab"): 
+        
+        with ui.nav_panel("General Information"):
+            with ui.layout_columns(col_widths={"sm": (4, 4, 4)}):
 
-        with ui.value_box(
-            showcase=faicons.icon_svg("calendar-days", width="50px"),
-            theme="bg-gradient-green-red",
-        ):
-            "Start Date"
+                with ui.value_box(
+                    showcase=icon_svg("calendar-days", width="40px"),
+                    theme="bg-gradient-green-red",
+                ):
+                    ui.div("Start Date", class_="vb-title")
 
-            @render.ui  
-            def datestartfun():  
-                return "January, 2014"  
-            
+                    @render.ui
+                    def datestartfun():
+                        return ui.div("January, 2014", class_="vb-value")
 
-        with ui.value_box(
-            showcase=faicons.icon_svg("calendar-days", width="50px"),
-            theme="bg-gradient-orange-red",
-        ):
-            "End Date"
+                with ui.value_box(
+                    showcase=icon_svg("calendar-days", width="40px"),
+                    theme="bg-gradient-orange-red",
+                ):
+                    ui.div("End Date", class_="vb-title")
 
-            @render.ui  
-            def dateendfun():  
-                return "December, 2024"  
-            
+                    @render.ui
+                    def dateendfun():
+                        return ui.div("December, 2024", class_="vb-value")
+
+                with ui.value_box(
+                    showcase=icon_svg("car-burst", width="40px"),
+                    theme="bg-gradient-yellow-purple",
+                ):
+                    ui.div("Number of Collisions", class_="vb-title")
+
+                    @render.ui
+                    def routefun():
+                        return ui.div(str(len(database)), class_="vb-value")
+                        
+            # Step 5: Render map in Shiny Express
+       
+
+            with ui.card(full_screen=True, height="500px"):
+
+                @render.ui
+                def plot_network():
+                    # Step 2: Create a Folium Map centered around Toronto
+                    m = folium.Map(location=[43.6, -79.4], zoom_start=10, tiles="cartodbpositron")
+
+                    # Step 3: Create a color scale
+                    max_val = hex_gdf['collision_count'].max()
+                    colormap = cm.linear.YlOrRd_09.scale(0, max_val)
+                    colormap.caption = 'Number of Collisions'
+                    colormap.add_to(m)
+
+                    # Step 4: Add each hexagon to the map
+                    for _, row in hex_gdf.iterrows():
+                        # Color based on collision count
+                        color = colormap(row['collision_count'])
+                        
+                        # Add to map
+                        folium.GeoJson(
+                            row['geometry'],
+                            style_function=lambda feature, color=color: {
+                                'fillColor': color,
+                                'color': 'black',
+                                'weight': 0.5,
+                                'fillOpacity': 0.6
+                            },
+                            tooltip=folium.Tooltip(f"Collisions: {row['collision_count']}"),
+                        ).add_to(m)
 
 
-        with ui.value_box(
-            showcase=faicons.icon_svg("car-burst", width="50px"),
-            theme="bg-gradient-yellow-purple",
-        ):
-            "Number of Collisions"
-
-            @render.ui
-            def routefun():
-                return len(database)
-
-
-with ui.card(full_screen=True, height="500px"):
-
-    @render.ui
-    def plot_network():
-        m = folium.Map(location=[43.6, -79.4], zoom_start=10)
-        HeatMap(data=database[['LAT_WGS84', 'LONG_WGS84']].values, radius=6).add_to(m)
-        return m
-
+                    return m
+        with ui.nav_panel("B"):
+            "Panel B content"
 
