@@ -102,21 +102,45 @@ ui.tags.style(
         }
         .vb-title {
             font-size: 13px;
-            font-weight: 500;
+            font-weight: bold;
             margin-bottom: 4px;
+            color: black;
         }
 
         .vb-value {
             font-size: 16px;
             font-weight: 600;
         }
+        .vb-small {
+            
+            min-height: 63px !important;
+            height: 63px !important;
+        }
+        .header-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100px;
+            padding: 10px;
+            margin: 0px !important;
+        }
+        .logo-container {
+            margin: 0px !important;
+            height: 100%;
+            padding: 10px;
+        
+        }
+        .logo-container img {
+            height: 100px;
+            margin: 0px !important;
+           
+        }
 
     """
 )
 
 
-
-ui.page_opts(title="Toronto Collision", fillable=True)
+ui.page_opts(window_title="Toronto Collision Dashboard", fillable=True)
 
 
 
@@ -124,13 +148,31 @@ ui.page_opts(title="Toronto Collision", fillable=True)
 
 with ui.sidebar():
 
-    ui.input_checkbox_group(
-        "time",
-        "Food service",
-        ["Lunch", "Dinner"],
-        selected=["Lunch", "Dinner"],
-        inline=True,
-        width="100px",
+    with ui.div(class_="header-container"):
+        with ui.div(class_="logo-container"):
+            ui.a(
+                ui.img(src="Logo.png"),  # adjust height as needed
+                href="https://data.torontopolice.on.ca/pages/open-data",
+                target="_blank"
+            )
+    ui.input_select(
+        "year", "Select Year",
+        ["All"] + [str(y) for y in range(2014, 2025)],
+        selected="All"
+    )
+
+
+    ui.input_select(
+        "season", "Select Season",
+        ["All", "Winter", "Spring", "Summer", "Fall"],
+        selected="All"
+    )
+
+
+    ui.input_select(
+        "month", "Select Month",
+        ["All"] + [calendar.month_name[m] for m in range(1, 13)],
+        selected="All"
     )
 
 with ui.div(class_="custom-nav-wrapper"):
@@ -143,16 +185,18 @@ with ui.div(class_="custom-nav-wrapper"):
                 with ui.value_box(
                     showcase=icon_svg("calendar-days", width="40px"),
                     theme="bg-gradient-green-red",
+                    class_="vb-small"
                 ):
                     ui.div("Start Date", class_="vb-title")
-
+                    
                     @render.ui
                     def datestartfun():
                         return ui.div("January, 2014", class_="vb-value")
-
+                    
                 with ui.value_box(
                     showcase=icon_svg("calendar-days", width="40px"),
                     theme="bg-gradient-green-red",
+                    class_="vb-small"
                 ):
                     ui.div("End Date", class_="vb-title")
 
@@ -163,6 +207,7 @@ with ui.div(class_="custom-nav-wrapper"):
                 with ui.value_box(
                     showcase=icon_svg("car-burst", width="40px"),
                     theme="bg-gradient-orange-red",
+                    class_="vb-small"
                 ):
                     ui.div("Number of Collisions", class_="vb-title")
 
@@ -174,7 +219,7 @@ with ui.div(class_="custom-nav-wrapper"):
        
             with ui.layout_columns(col_widths={"sm": (6, 6)}):
                     
-                with ui.card(full_screen=True, height="400px"):
+                with ui.card(full_screen=True, height="310px"):
 
                     @render.ui
                     def plot_network():
@@ -207,7 +252,7 @@ with ui.div(class_="custom-nav-wrapper"):
 
                         return m
                     
-                with ui.card(height="400px"):
+                with ui.card(height="310px"):
                     ui.card_header("Total Collisions by Year")
 
                     @render.plot
@@ -226,7 +271,7 @@ with ui.div(class_="custom-nav-wrapper"):
                         plt.tight_layout()
            
                        
-                with ui.card(height="400px"):
+                with ui.card(height="310px"):
                     ui.card_header("Total Fatals by Year")
 
                     @render.plot
@@ -251,7 +296,7 @@ with ui.div(class_="custom-nav-wrapper"):
 
 
 
-                with ui.card(height="400px"):
+                with ui.card(height="310px"):
                     ui.card_header("Percentage of Runaway by Year")
 
                     @render.plot
@@ -267,13 +312,13 @@ with ui.div(class_="custom-nav-wrapper"):
                         percentage_runaway_per_year = (runaway_per_year / total_per_year) * 100
 
                         # Plot as a line chart
-                        plt.figure(figsize=(8, 4))
+                        
                         plt.plot(percentage_runaway_per_year.index, percentage_runaway_per_year.values, marker='o', color='purple', linestyle='-')
 
                      
                         plt.xlabel('Year', fontsize=8)
                         plt.ylabel('Percentage (%)', fontsize=8)
-                        plt.xticks(rotation=45, fontsize=6)
+                        plt.xticks(rotation=0, fontsize=6)
                         plt.yticks(fontsize=8)
 
                         plt.grid(True, linestyle='--', linewidth=0.5)
