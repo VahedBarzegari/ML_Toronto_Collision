@@ -12,10 +12,10 @@ import branca.colormap as cm
 import folium
 from folium.plugins import HeatMap
 from folium.plugins import MarkerCluster
-
+from folium import Choropleth
 from pathlib import Path
 
-from data import database, hex_gdf
+from data import database, hex_gdf, DIV_geo
 
 import altair as alt
 import calendar
@@ -54,8 +54,9 @@ ui.tags.style(
             background-color: white;
             padding: 0px !important;
             border-radius: 0px;
-            box-shadow: 2px 2px 10px rgba(0, 250, 0, 0.1);
-            margin: 0px !important
+            box-shadow: 2px 2px 10px rgba(0, 250, 0, 0.3);
+            margin: 0px !important;
+            border-color: black;
         }
         .modebar{
             display: none;
@@ -155,24 +156,36 @@ with ui.sidebar():
                 href="https://data.torontopolice.on.ca/pages/open-data",
                 target="_blank"
             )
-    ui.input_select(
+    ui.input_selectize(
         "year", "Select Year",
         ["All"] + [str(y) for y in range(2014, 2025)],
+        multiple=True,
         selected="All"
     )
 
 
-    ui.input_select(
+    ui.input_selectize(
         "season", "Select Season",
         ["All", "Winter", "Spring", "Summer", "Fall"],
+        multiple=True,
         selected="All"
     )
 
 
-    ui.input_select(
+    ui.input_selectize(
         "month", "Select Month",
         ["All"] + [calendar.month_name[m] for m in range(1, 13)],
+        multiple=True,
         selected="All"
+    )
+
+
+    ui.input_selectize(
+        "timerange", 
+        "Select Time Range", 
+        ["All", "Morning", "Midday", "Evening", "Night"], 
+        multiple=True,
+        selected=["All"]
     )
 
 with ui.div(class_="custom-nav-wrapper"):
@@ -219,7 +232,7 @@ with ui.div(class_="custom-nav-wrapper"):
        
             with ui.layout_columns(col_widths={"sm": (6, 6)}):
                     
-                with ui.card(full_screen=True, height="310px"):
+                with ui.card(full_screen=True, height="350px"):
 
                     @render.ui
                     def plot_network():
@@ -252,7 +265,7 @@ with ui.div(class_="custom-nav-wrapper"):
 
                         return m
                     
-                with ui.card(height="310px"):
+                with ui.card(height="350px"):
                     ui.card_header("Total Collisions by Year")
 
                     @render.plot
@@ -325,8 +338,67 @@ with ui.div(class_="custom-nav-wrapper"):
                         plt.tight_layout()
 
         with ui.nav_panel("Division-based Analysis"):
-            "Panel B content"
 
+            with ui.layout_columns(col_widths={"sm": (12)}):
+
+                with ui.layout_columns(col_widths={"sm": (6,6)}):
+                    with ui.card(height='350px'):
+                            
+                            @render.data_frame  
+                            def insights_df():
+                                return render.DataGrid(database.head(100), selection_mode="row")  
+
+
+                    with ui.card(height='350px'):
+                            
+                        @render.ui
+                        def map_DIV():
+                            # Step 1: Count division occurrences and create a DataFrame
+                            division_counts = database['DIV'].value_counts().sort_index().reset_index()
+                            division_counts.columns = ['DIV', 'Number of Collisions']  # Rename columns to match GeoJSON
+
+                            # Step 3: Merge the count DataFrame with the GeoDataFrame on 'DIV'
+                            merged = DIV_geo.merge(division_counts, on='DIV')
+
+                            # Step 4: Convert CRS to WGS84 if needed (Folium requires EPSG:4326)
+                            merged = merged.to_crs(epsg=4326)
+
+                            # Step 5: Initialize Folium map
+                            m = folium.Map(location=[43.7, -79.4], zoom_start=10, tiles="cartodbpositron")  # Adjust center as needed
+
+                            # Step 6: Add Choropleth layer
+                            Choropleth(
+                                geo_data=merged,
+                                data=merged,
+                                columns=['DIV', 'Number of Collisions'],
+                                key_on='feature.properties.DIV',
+                                fill_color='YlOrRd',
+                                fill_opacity=0.9,
+                                line_opacity=0.2,
+                            ).add_to(m)
+
+                            # Optional: Add tooltips
+                            folium.GeoJson(
+                                merged,
+                                name="Divisions",
+                                tooltip=folium.features.GeoJsonTooltip(fields=["DIV", "Number of Collisions"])
+                            ).add_to(m)
+
+                            return m
+
+                with ui.layout_columns(col_widths={"sm": (4,4,4)}):
+
+                    with ui.card(height='350px'):
+                        
+                        "kit"
+
+                    with ui.card(height='350px'):
+                        
+                        "kit"
+
+                    with ui.card(height='350px'):
+                        
+                        "kit"
         with ui.nav_panel("Neighborhood-based Analysis"):
             "Panel C content"
 

@@ -42,7 +42,22 @@ df[columns_to_convert] = df[columns_to_convert].applymap(lambda x: 1 if x == 'YE
 
 database = df.copy()
 
+# Assuming your DataFrame is called df
+def get_time_range(hour):
+    if 5 <= hour <= 9:
+        return "Morning"
+    elif 10 <= hour <= 14:
+        return "Midday"
+    elif 15 <= hour <= 18:
+        return "Evening"
+    else:
+        return "Night"
+
+# Apply the function to create the new column
+database["Time Range"] = database["OCC_HOUR"].apply(get_time_range)
 
 
 # Step 1: Load the hex grid with collisions
 hex_gdf = gpd.read_file("hex_grid_with_collisions.geojson")
+
+DIV_geo = gpd.read_file('DIV_Boundaries.geojson')
