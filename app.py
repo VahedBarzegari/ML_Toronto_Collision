@@ -341,6 +341,20 @@ with ui.div(class_="custom-nav-wrapper"):
 
         with ui.nav_panel("Division-based Analysis"):
 
+            ui.input_select(
+                "division",
+                "",
+                {
+                    "All": "All Divisions",
+                    "D11": "D11", "D12": "D12", "D13": "D13", "D14": "D14",
+                    "D22": "D22", "D23": "D23",
+                    "D31": "D31", "D32": "D32", "D33": "D33",
+                    "D41": "D41", "D42": "D42", "D43": "D43",
+                    "D51": "D51", "D52": "D52", "D53": "D53", "D55": "D55",
+                },
+                selected="All"
+            )
+
             with ui.layout_columns(col_widths={"sm": (12)}):
 
                 with ui.layout_columns(col_widths={"sm": (6,6)}):
@@ -389,6 +403,16 @@ with ui.div(class_="custom-nav-wrapper"):
                                     c_tuple = ast.literal_eval(c)  # Convert string to tuple
                                     b = [x for x in c_tuple] 
                                     database1 = database1[database1['Time Range'].isin(b)]
+
+
+                                c = str(input.division())
+
+                                if c == "All":
+                                    database1 = database1.copy()
+                                else:
+
+
+                                    database1 = database1[database1['DIV']==c]
 
 
                                 return render.DataGrid(database1.head(100), selection_mode="row")  
@@ -607,7 +631,99 @@ with ui.div(class_="custom-nav-wrapper"):
 
                     with ui.card(height='350px'):
                         
-                        "kit"
+                        ICONS = {
+                            "ellipsis": faicons.icon_svg("ellipsis"),
+                        }
+                        with ui.popover(title="Measure", placement="top"):
+                            ICONS["ellipsis"]
+                            ui.input_radio_buttons(
+                                "filter_based_hors",
+                                None,
+                                ["Collisions", "Fatals"],
+                                inline=True,
+                            )
+                        
+                        @render.plot
+                        def hoyrly_div_plot():
+
+                            c = str(input.year())
+
+                            if 'All' in c:
+                                database1 = database.copy()
+                            else:
+
+                                c_tuple = ast.literal_eval(c)  # Convert string to tuple
+                                b = [int(x) for x in c_tuple if x.isdigit()] 
+                                database1 = database[database['OCC_YEAR'].isin(b)]
+
+                            c = str(input.month())
+
+                            if 'All' in c:
+                                database1 = database1.copy()
+                            else:
+
+                                c_tuple = ast.literal_eval(c)  # Convert string to tuple
+                                b = [x for x in c_tuple] 
+                                database1 = database1[database1['OCC_MONTH'].isin(b)]
+
+                                
+                            c = str(input.day())
+
+                            if 'All' in c:
+                                database1 = database1.copy()
+                            else:
+
+                                c_tuple = ast.literal_eval(c)  # Convert string to tuple
+                                b = [x for x in c_tuple] 
+                                database1 = database1[database1['OCC_DOW'].isin(b)]
+
+                            c = str(input.timerange())
+
+                            if 'All' in c:
+                                database1 = database1.copy()
+                            else:
+
+                                c_tuple = ast.literal_eval(c)  # Convert string to tuple
+                                b = [x for x in c_tuple] 
+                                database1 = database1[database1['Time Range'].isin(b)]
+
+                            c = str(input.division())
+
+                            if c == "All":
+                                database1 = database1.copy()
+                            else:
+
+
+                                database1 = database1[database1['DIV']==c]
+
+
+                            Meas = input.filter_based_hors()
+                            if Meas == "Collisions":
+                                df1 = database1['OCC_HOUR'].value_counts().sort_index()
+
+                                plt.figure(figsize=(4, 4))
+                                plt.bar(df1.index, df1.values, color="skyblue")
+                                plt.title("Number of Collisions by Hour", fontsize=8)
+                                plt.xlabel("Hour of Day", fontsize=6)
+                                plt.ylabel("Number of Collisions", fontsize=6)
+                                plt.grid(axis='y', linestyle='--', alpha=0.7)
+                                plt.xticks(rotation=0, fontsize=6)
+                                plt.yticks(fontsize=6)
+                                plt.tight_layout()      
+
+
+                            else:
+                                df1 = database1.groupby('OCC_HOUR')['FATALITIES'].sum().reset_index()
+
+                                plt.figure(figsize=(4, 4))
+                                plt.bar(df1['OCC_HOUR'], df1['FATALITIES'], color="red")
+                                plt.title("Number of Fatals by Hour", fontsize=8)
+                                plt.xlabel("Hour of Day", fontsize=6)
+                                plt.ylabel("Number of Fatals", fontsize=6)
+                                plt.grid(axis='y', linestyle='--', alpha=0.7)
+                                plt.xticks(rotation=0, fontsize=6)
+                                plt.yticks(fontsize=6)
+                                plt.tight_layout()
 
                     with ui.card(height='350px'):
                         
