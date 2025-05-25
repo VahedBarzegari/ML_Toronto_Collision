@@ -369,6 +369,28 @@ with ui.div(class_="custom-nav-wrapper"):
                                     b = [x for x in c_tuple] 
                                     database1 = database1[database1['OCC_MONTH'].isin(b)]
 
+                                    
+                                c = str(input.day())
+
+                                if 'All' in c:
+                                    database1 = database1.copy()
+                                else:
+
+                                    c_tuple = ast.literal_eval(c)  # Convert string to tuple
+                                    b = [x for x in c_tuple] 
+                                    database1 = database1[database1['OCC_DOW'].isin(b)]
+
+                                c = str(input.timerange())
+
+                                if 'All' in c:
+                                    database1 = database1.copy()
+                                else:
+
+                                    c_tuple = ast.literal_eval(c)  # Convert string to tuple
+                                    b = [x for x in c_tuple] 
+                                    database1 = database1[database1['Time Range'].isin(b)]
+
+
                                 return render.DataGrid(database1.head(100), selection_mode="row")  
 
 
@@ -410,6 +432,26 @@ with ui.div(class_="custom-nav-wrapper"):
                                 c_tuple = ast.literal_eval(c)  # Convert string to tuple
                                 b = [x for x in c_tuple] 
                                 database1 = database1[database1['OCC_MONTH'].isin(b)]
+
+                            c = str(input.day())
+
+                            if 'All' in c:
+                                database1 = database1.copy()
+                            else:
+
+                                c_tuple = ast.literal_eval(c)  # Convert string to tuple
+                                b = [x for x in c_tuple] 
+                                database1 = database1[database1['OCC_DOW'].isin(b)]
+
+                            c = str(input.timerange())
+
+                            if 'All' in c:
+                                database1 = database1.copy()
+                            else:
+
+                                c_tuple = ast.literal_eval(c)  # Convert string to tuple
+                                b = [x for x in c_tuple] 
+                                database1 = database1[database1['Time Range'].isin(b)]
 
 
                             if input.filter_map_Div() == "Fatals":
