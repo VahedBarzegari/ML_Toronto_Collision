@@ -360,7 +360,7 @@ with ui.div(class_="custom-nav-wrapper"):
                 with ui.layout_columns(col_widths={"sm": (6,6)}):
                     with ui.card(full_screen=True, height='350px'):
                             
-                            @render.data_frame  
+                            @render.table  
                             def insights_df():
 
                                 c = str(input.year())
@@ -414,9 +414,26 @@ with ui.div(class_="custom-nav-wrapper"):
 
                                     database1 = database1[database1['DIV']==c]
 
-
-                                return render.DataGrid(database1.head(100), selection_mode="row")  
-
+                                summary_df = database1.groupby('DIV').agg(
+                                    total_collisions=('DIV', 'count'),
+                                    total_fatalities=('FATALITIES', 'sum'),
+                                    injury_collisions=('INJURY_COLLISIONS', 'sum'),
+                                    automobile_collisions=('AUTOMOBILE', 'sum'),
+                                    motorcycle_collisions=('MOTORCYCLE', 'sum'),
+                                    bicycle_collisions=('BICYCLE', 'sum'),
+                                    pedestrian_collisions=('PEDESTRIAN', 'sum')
+                                ).reset_index()
+                                
+                                return (
+                                    summary_df.style.set_table_attributes(
+                                        'class="dataframe shiny-table table w-auto"'
+                                    )
+                                    .hide(axis="index")
+                                    .set_table_styles([dict(selector="th", props=[("text-align", "right")])])
+                                    .highlight_min(color="silver")
+                                    .highlight_max(color="yellow")
+                                )
+                          
 
                     with ui.card(full_screen=True, height='350px'):
                         with ui.card_header(""):
