@@ -74,7 +74,7 @@ ui.tags.style(
             background-color: purple !important;
         }
         .sidebar {
-            background-color: lightgray !important;
+            background-color: blue !important;
      
             
         }
@@ -137,6 +137,9 @@ ui.tags.style(
             margin: 0px !important;
            
         }
+        #side-label {
+            color: white !important;
+        }
 
     """
 )
@@ -158,7 +161,7 @@ with ui.sidebar():
                 target="_blank"
             )
     ui.input_selectize(
-        "year", "Select Year",
+        "year", ui.tags.label("Select Year", id="side-label"),
         ["All"] + [str(y) for y in range(2014, 2025)],
         multiple=True,
         selected="All"
@@ -167,16 +170,15 @@ with ui.sidebar():
 
 
 
-
     ui.input_selectize(
-        "month", "Select Month",
+        "month", ui.tags.label("Select Month", id="side-label"),
         ["All"] + [calendar.month_name[m] for m in range(1, 13)],
         multiple=True,
         selected="All"
     )
 
     ui.input_selectize(
-        "day", "Select Day of Week",
+        "day", ui.tags.label("Select Day of Week", id="side-label"),
         ["All"] + ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
         multiple=True,
         selected="All"
@@ -184,7 +186,7 @@ with ui.sidebar():
 
     ui.input_selectize(
         "timerange", 
-        "Select Time Range", 
+        ui.tags.label("Select Time Range", id="side-label"),
         ["All", "Morning", "Midday", "Evening", "Night"], 
         multiple=True,
         selected=["All"]
@@ -405,15 +407,6 @@ with ui.div(class_="custom-nav-wrapper"):
                                     database1 = database1[database1['Time Range'].isin(b)]
 
 
-                                c = str(input.division())
-
-                                if c == "All":
-                                    database1 = database1.copy()
-                                else:
-
-
-                                    database1 = database1[database1['DIV']==c]
-
                                 summary_df = database1.groupby('DIV').agg(
                                     total_collisions=('DIV', 'count'),
                                     total_fatalities=('FATALITIES', 'sum'),
@@ -430,8 +423,8 @@ with ui.div(class_="custom-nav-wrapper"):
                                     )
                                     .hide(axis="index")
                                     .set_table_styles([dict(selector="th", props=[("text-align", "right")])])
-                                    .highlight_min(color="silver")
-                                    .highlight_max(color="yellow")
+                                    .highlight_min(color="lightgreen")
+                                    .highlight_max(color="red")
                                 )
                           
 
