@@ -2,6 +2,7 @@ import ast
 import asyncio
 from datetime import datetime
 from faicons import icon_svg
+
 import faicons
 import folium.map
 import pandas as pd
@@ -98,7 +99,7 @@ ui.tags.style(
         }
 
         .nav-pills .nav-link:hover {
-            background-color: #e2e6ea;   /* Slightly darker on hover */
+            background-color: yellow;   /* Slightly darker on hover */
             color: #000;
         }
         .vb-title {
@@ -164,12 +165,7 @@ with ui.sidebar():
     )
 
 
-    ui.input_selectize(
-        "season", "Select Season",
-        ["All", "Winter", "Spring", "Summer", "Fall"],
-        multiple=True,
-        selected="All"
-    )
+
 
 
     ui.input_selectize(
@@ -179,6 +175,12 @@ with ui.sidebar():
         selected="All"
     )
 
+    ui.input_selectize(
+        "day", "Select Day of Week",
+        ["All"] + ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+        multiple=True,
+        selected="All"
+    )
 
     ui.input_selectize(
         "timerange", 
@@ -265,7 +267,7 @@ with ui.div(class_="custom-nav-wrapper"):
 
                         return m
                     
-                with ui.card(height="350px"):
+                with ui.card(full_screen=True, height="350px"):
                     ui.card_header("Total Collisions by Year")
 
                     @render.plot
@@ -284,7 +286,7 @@ with ui.div(class_="custom-nav-wrapper"):
                         plt.tight_layout()
            
                        
-                with ui.card(height="310px"):
+                with ui.card(full_screen=True, height="310px"):
                     ui.card_header("Total Fatals by Year")
 
                     @render.plot
@@ -309,7 +311,7 @@ with ui.div(class_="custom-nav-wrapper"):
 
 
 
-                with ui.card(height="310px"):
+                with ui.card(full_screen=True, height="310px"):
                     ui.card_header("Percentage of Runaway by Year")
 
                     @render.plot
@@ -342,55 +344,224 @@ with ui.div(class_="custom-nav-wrapper"):
             with ui.layout_columns(col_widths={"sm": (12)}):
 
                 with ui.layout_columns(col_widths={"sm": (6,6)}):
-                    with ui.card(height='350px'):
+                    with ui.card(full_screen=True, height='350px'):
                             
                             @render.data_frame  
                             def insights_df():
-                                return render.DataGrid(database.head(100), selection_mode="row")  
+
+                                c = str(input.year())
+
+                                if 'All' in c:
+                                    database1 = database.copy()
+                                else:
+
+                                    c_tuple = ast.literal_eval(c)  # Convert string to tuple
+                                    b = [int(x) for x in c_tuple if x.isdigit()] 
+                                    database1 = database[database['OCC_YEAR'].isin(b)]
+
+                                c = str(input.month())
+
+                                if 'All' in c:
+                                    database1 = database1.copy()
+                                else:
+
+                                    c_tuple = ast.literal_eval(c)  # Convert string to tuple
+                                    b = [x for x in c_tuple] 
+                                    database1 = database1[database1['OCC_MONTH'].isin(b)]
+
+                                return render.DataGrid(database1.head(100), selection_mode="row")  
 
 
-                    with ui.card(height='350px'):
-                            
+                    with ui.card(full_screen=True, height='350px'):
+                        with ui.card_header(""):
+
+                            ICONS = {
+                                "ellipsis": faicons.icon_svg("ellipsis"),
+                            }
+                            with ui.popover(title="Measure", placement="top"):
+                                ICONS["ellipsis"]
+                                ui.input_radio_buttons(
+                                    "filter_map_Div",
+                                    None,
+                                    ["Collisions", "Fatals"],
+                                    inline=True,
+                                )
+
                         @render.ui
                         def map_DIV():
-                            # Step 1: Count division occurrences and create a DataFrame
-                            division_counts = database['DIV'].value_counts().sort_index().reset_index()
-                            division_counts.columns = ['DIV', 'Number of Collisions']  # Rename columns to match GeoJSON
 
-                            # Step 3: Merge the count DataFrame with the GeoDataFrame on 'DIV'
-                            merged = DIV_geo.merge(division_counts, on='DIV')
 
-                            # Step 4: Convert CRS to WGS84 if needed (Folium requires EPSG:4326)
+                            c = str(input.year())
+
+                            if 'All' in c:
+                                database1 = database
+                            else:
+
+                                c_tuple = ast.literal_eval(c)  # Convert string to tuple
+                                b = [int(x) for x in c_tuple if x.isdigit()] 
+                                database1 = database[database['OCC_YEAR'].isin(b)]
+
+                            c = str(input.month())
+
+                            if 'All' in c:
+                                database1 = database1.copy()
+                            else:
+
+                                c_tuple = ast.literal_eval(c)  # Convert string to tuple
+                                b = [x for x in c_tuple] 
+                                database1 = database1[database1['OCC_MONTH'].isin(b)]
+
+
+                            if input.filter_map_Div() == "Fatals":
+                                # Sum fatalities per DIV
+                                division_data = database1.groupby("DIV")["FATALITIES"].sum().reset_index()
+                                division_data.columns = ["DIV", "Number of Fatalities"]
+                                value_column = "Number of Fatalities"
+                                color = "Reds"
+                                legend_name = "Number of Fatalities"
+                            else:
+                                # Count number of collisions per DIV
+                                division_data = database1["DIV"].value_counts().reset_index()
+                                division_data.columns = ["DIV", "Number of Collisions"]
+                                value_column = "Number of Collisions"
+                                color = "YlOrRd"
+                                legend_name = "Number of Collisions"
+
+                            # Merge with GeoDataFrame
+                            merged = DIV_geo.merge(division_data, on="DIV")
                             merged = merged.to_crs(epsg=4326)
 
-                            # Step 5: Initialize Folium map
-                            m = folium.Map(location=[43.7, -79.4], zoom_start=10, tiles="cartodbpositron")  # Adjust center as needed
+                            # Initialize Folium map
+                            m = folium.Map(location=[43.7, -79.4], zoom_start=10, tiles="cartodbpositron")
 
-                            # Step 6: Add Choropleth layer
+                            # Choropleth layer
                             Choropleth(
                                 geo_data=merged,
                                 data=merged,
-                                columns=['DIV', 'Number of Collisions'],
-                                key_on='feature.properties.DIV',
-                                fill_color='YlOrRd',
+                                columns=["DIV", value_column],
+                                key_on="feature.properties.DIV",
+                                fill_color=color,
                                 fill_opacity=0.9,
-                                line_opacity=0.2,
+                                line_opacity=0.6,
+                                legend_name=legend_name,
                             ).add_to(m)
 
-                            # Optional: Add tooltips
+                            # Tooltip with clear labels
                             folium.GeoJson(
                                 merged,
                                 name="Divisions",
-                                tooltip=folium.features.GeoJsonTooltip(fields=["DIV", "Number of Collisions"])
+                                tooltip=folium.features.GeoJsonTooltip(
+                                    fields=["DIV", value_column],
+                                    aliases=["Division:", f"{legend_name}:"],
+                                    localize=True
+                                ),
+                                style_function=lambda x: {"fillOpacity": 0, "weight": 0}
                             ).add_to(m)
 
                             return m
 
                 with ui.layout_columns(col_widths={"sm": (4,4,4)}):
 
-                    with ui.card(height='350px'):
+                    with ui.card(full_screen=True, height='350px'):
+
+                        ICONS = {
+                            "ellipsis": faicons.icon_svg("ellipsis"),
+                        }
+                        with ui.popover(title="Measure", placement="top"):
+                            ICONS["ellipsis"]
+                            ui.input_radio_buttons(
+                                "filter_worstDiv",
+                                None,
+                                ["Collisions", "Fatals"],
+                                inline=True,
+                            )
                         
-                        "kit"
+                        @render.plot
+                        def top_division_plot():
+
+                            c = str(input.year())
+
+                            if 'All' in c:
+                                database1 = database
+                            else:
+
+                                c_tuple = ast.literal_eval(c)  # Convert string to tuple
+                                b = [int(x) for x in c_tuple if x.isdigit()] 
+                                database1 = database[database['OCC_YEAR'].isin(b)]
+
+                            c = str(input.month())
+
+                            if 'All' in c:
+                                database1 = database1.copy()
+                            else:
+
+                                c_tuple = ast.literal_eval(c)  # Convert string to tuple
+                                b = [x for x in c_tuple] 
+                                database1 = database1[database1['OCC_MONTH'].isin(b)]
+
+
+                            c = str(input.day())
+
+                            if 'All' in c:
+                                database1 = database1.copy()
+                            else:
+
+                                c_tuple = ast.literal_eval(c)  # Convert string to tuple
+                                b = [x for x in c_tuple] 
+                                database1 = database1[database1['OCC_DOW'].isin(b)]
+
+                            c = str(input.timerange())
+
+                            if 'All' in c:
+                                database1 = database1.copy()
+                            else:
+
+                                c_tuple = ast.literal_eval(c)  # Convert string to tuple
+                                b = [x for x in c_tuple] 
+                                database1 = database1[database1['Time Range'].isin(b)]
+
+
+
+                            Meas = input.filter_worstDiv()
+                            if Meas == "Collisions":
+                                # Step 1: Count collisions per DIV
+                                div_counts = database1['DIV'].value_counts().reset_index()
+
+                                # Step 2: Rename columns for clarity
+                                div_counts.columns = ['DIV', 'collision_count']
+
+                                # Step 3: Get the top 5 DIVs as a DataFrame
+                                top5_divs_df = div_counts.head(5)
+
+                                
+                                plt.figure(figsize=(4, 3))
+                                plt.bar(top5_divs_df['DIV'], top5_divs_df['collision_count'], color='red')
+                                plt.title('Worst Divisions by Number of Collisions', fontsize=8)
+                                plt.xlabel('DIV', fontsize=8)
+                                plt.ylabel('Number of Collisions',  fontsize=8)
+                                plt.grid(axis='y', linestyle='--', alpha=0.7)
+                                plt.xticks(rotation=0, fontsize=6)
+                                plt.yticks(fontsize=8)
+                                plt.tight_layout()
+                            else:
+                                # Step 1: Sum fatalities per DIV
+                                fatalities_by_div = database1.groupby('DIV')['FATALITIES'].sum().reset_index()
+
+                                # Step 2: Sort in descending order
+                                fatalities_by_div = fatalities_by_div.sort_values(by='FATALITIES', ascending=False)
+
+                                # Step 3: Get top 5 worst DIVs by fatalities
+                                top5_fatal_divs = fatalities_by_div.head(5)
+
+                                plt.figure(figsize=(4, 3))
+                                plt.bar(top5_fatal_divs['DIV'], top5_fatal_divs['FATALITIES'], color='purple')
+                                plt.title('Worst Divisions by Total Fatalities', fontsize=8)
+                                plt.xlabel('DIV', fontsize=8)
+                                plt.ylabel('Total Fatalities', fontsize=8)
+                                plt.grid(axis='y', linestyle='--', alpha=0.7)
+                                plt.xticks(rotation=0, fontsize=6)
+                                plt.yticks(fontsize=8)
+                                plt.tight_layout()
 
                     with ui.card(height='350px'):
                         
