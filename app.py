@@ -639,7 +639,7 @@ with ui.div(class_="custom-nav-wrapper"):
                                 plt.yticks(fontsize=8)
                                 plt.tight_layout()
 
-                    with ui.card(height='350px'):
+                    with ui.card(full_screen=True, height='350px'):
                         
                         ICONS = {
                             "ellipsis": faicons.icon_svg("ellipsis"),
