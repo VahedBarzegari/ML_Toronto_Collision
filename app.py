@@ -735,9 +735,20 @@ with ui.div(class_="custom-nav-wrapper"):
                                 plt.yticks(fontsize=6)
                                 plt.tight_layout()
 
-                    with ui.card(height='350px'):
-                        
-                        "kit"
+                    with ui.card(full_screen=True, height='350px'):
+
+                        ICONS = {
+                            "ellipsis": faicons.icon_svg("ellipsis"),
+                        }
+                        with ui.popover(title="Measure", placement="top"):
+                            ICONS["ellipsis"]
+                            ui.input_radio_buttons(
+                                "filter_based_involvment",
+                                None,
+                                ["Collisions", "Fatals"],
+                                inline=True,
+                            )                       
+                       
         with ui.nav_panel("Neighborhood-based Analysis"):
             "Panel C content"
 
